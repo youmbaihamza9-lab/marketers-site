@@ -7,6 +7,19 @@ function serializeProduct(p) {
   return { ...p, image_url: publicImageUrl(p.image_path) };
 }
 
+function parseVariants(raw) {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((v) => v && v.label)
+      .map((v) => ({ label: String(v.label), price: parseFloat(v.price) || 0 }));
+  } catch {
+    return [];
+  }
+}
+
 export async function GET(req) {
   const { error } = await requireRole();
   if (error) return error;
@@ -35,6 +48,8 @@ export async function POST(req) {
   const name = form.get('name')?.toString().trim();
   const price = parseFloat(form.get('price') || '0');
   const categoryId = form.get('category_id')?.toString() || null;
+  const notes = form.get('notes')?.toString().trim() || null;
+  const variants = parseVariants(form.get('variants'));
   const file = form.get('image');
 
   if (!name) return NextResponse.json({ error: 'اسم المنتج مطلوب' }, { status: 400 });
@@ -57,7 +72,7 @@ export async function POST(req) {
 
   const { data, error: dbError } = await supabase
     .from('products')
-    .insert({ name, price, category_id: categoryId, image_path: imagePath, sort_order: count || 0 })
+    .insert({ name, price, category_id: categoryId, notes, variants, image_path: imagePath, sort_order: count || 0 })
     .select()
     .single();
 
