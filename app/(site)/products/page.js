@@ -7,6 +7,7 @@ export default function MarketerProductsPage() {
   const [q, setQ] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [loading, setLoading] = useState(true);
+  const [openId, setOpenId] = useState(null);
 
   useEffect(() => {
     fetch('/api/categories').then((r) => r.json()).then((d) => setCategories(d.categories || []));
@@ -59,24 +60,58 @@ export default function MarketerProductsPage() {
         <div className="text-slate-400 py-20 text-center">لا توجد منتجات مطابقة</div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {products.map((p) => (
-            <div key={p.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
-              <div className="aspect-square bg-slate-100">
-                {p.image_url ? (
-                  <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-300 text-3xl">🖼️</div>
-                )}
+          {products.map((p) => {
+            const hasVariants = p.variants && p.variants.length > 0;
+            const isOpen = openId === p.id;
+            return (
+              <div key={p.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="aspect-square bg-slate-100">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-300 text-3xl">🖼️</div>
+                  )}
+                </div>
+                <div className="p-3">
+                  <div className="font-semibold text-sm text-slate-800 truncate">{p.name}</div>
+                  {p.category_id && categoryName[p.category_id] && (
+                    <div className="text-xs text-slate-400 mt-0.5">{categoryName[p.category_id]}</div>
+                  )}
+
+                  {!hasVariants && (
+                    <div className="mt-2 font-bold text-brand-700">{Number(p.price).toLocaleString('ar-DZ')} د.ج</div>
+                  )}
+
+                  {hasVariants && (
+                    <button
+                      onClick={() => setOpenId(isOpen ? null : p.id)}
+                      className="mt-2 w-full flex items-center justify-between text-sm font-bold text-brand-700 bg-brand-50 rounded-lg px-2.5 py-1.5"
+                    >
+                      <span>{p.variants.length} مقاسات متوفرة</span>
+                      <span className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>▾</span>
+                    </button>
+                  )}
+
+                  {hasVariants && isOpen && (
+                    <div className="mt-2 space-y-1 border-t border-slate-100 pt-2">
+                      {p.variants.map((v, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs">
+                          <span className="text-slate-600">{v.label}</span>
+                          <span className="font-bold text-brand-700">{Number(v.price).toLocaleString('ar-DZ')} د.ج</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {p.notes && (
+                    <div className="mt-2 text-xs text-slate-500 bg-slate-50 rounded-lg px-2 py-1.5 leading-relaxed">
+                      {p.notes}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="p-3">
-                <div className="font-semibold text-sm text-slate-800 truncate">{p.name}</div>
-                {p.category_id && categoryName[p.category_id] && (
-                  <div className="text-xs text-slate-400 mt-0.5">{categoryName[p.category_id]}</div>
-                )}
-                <div className="mt-2 font-bold text-brand-700">{Number(p.price).toLocaleString('ar-DZ')} د.ج</div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
