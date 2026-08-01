@@ -3,6 +3,19 @@ import { randomUUID } from 'crypto';
 import { supabaseAdmin, STORAGE_BUCKET, publicImageUrl } from '@/lib/supabaseServer';
 import { requireRole } from '@/lib/requireRole';
 
+function parseVariants(raw) {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((v) => v && v.label)
+      .map((v) => ({ label: String(v.label), price: parseFloat(v.price) || 0 }));
+  } catch {
+    return [];
+  }
+}
+
 export async function PATCH(req, { params }) {
   const { error } = await requireRole('admin');
   if (error) return error;
@@ -14,6 +27,8 @@ export async function PATCH(req, { params }) {
   if (form.has('name')) updates.name = form.get('name').toString().trim();
   if (form.has('price')) updates.price = parseFloat(form.get('price'));
   if (form.has('category_id')) updates.category_id = form.get('category_id') || null;
+  if (form.has('notes')) updates.notes = form.get('notes').toString().trim() || null;
+  if (form.has('variants')) updates.variants = parseVariants(form.get('variants'));
 
   const file = form.get('image');
   if (file && typeof file === 'object' && file.size > 0) {
